@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { generateCards, zoneGuide } from './data/cardFactory.js';
+import { generateCards, lessonSlides, zoneGuide } from './data/cardFactory.js';
 import { getRank, pickAdaptiveCard, updateStats } from './utils/adaptiveTrainer.js';
 
 function MiniMap() {
@@ -11,16 +11,31 @@ function MiniMap() {
     ['OFFICE', 'A-Z AISLES', 'GUARD']
   ];
   return <div className="map-card">
-    <div className="map-title">PAPER MAP MODE</div>
+    <div className="map-title">MAP BREAKDOWN</div>
     <div className="map-grid">{blocks.flat().map((b) => <div className="map-cell" key={b}>{b}</div>)}</div>
+    <p className="tiny">Simple map first. Real map later. Brain first, pacer second.</p>
   </div>;
+}
+
+function Lesson({ slide, setSlide, startPractice }) {
+  const lesson = lessonSlides[slide];
+  return <section className="panel lesson">
+    <div className="card-id">TEACH MODE • Slide {slide + 1} of {lessonSlides.length}</div>
+    <h2>{lesson.title}</h2>
+    <p>{lesson.body}</p>
+    <div className="rule">RULE: {lesson.rule}</div>
+    <div className="lesson-buttons">
+      <button onClick={() => setSlide(Math.max(0, slide - 1))}>Back</button>
+      {slide < lessonSlides.length - 1 ? <button onClick={() => setSlide(slide + 1)}>Next Lesson</button> : <button onClick={startPractice}>Start Practice</button>}
+    </div>
+  </section>;
 }
 
 function Guide() {
   return <section className="panel guide">
-    <h2>Map Logic</h2>
+    <h2>Zone + Stack Guide</h2>
     {Object.entries(zoneGuide).map(([key, item]) => <div className="guide-row" key={key}>
-      <strong>{key}</strong><span>{item.name}</span><em>{item.memory}</em>
+      <strong>{key}</strong><span>{item.name}</span><em>{item.memory}<br />Stack: {item.stack}</em>
     </div>)}
   </section>;
 }
@@ -30,8 +45,15 @@ export default function App() {
   const [stats, setStats] = useState(() => JSON.parse(localStorage.getItem('maptrainer-stats') || '{}'));
   const [xp, setXp] = useState(() => Number(localStorage.getItem('maptrainer-xp') || 0));
   const [level, setLevel] = useState('all');
+  const [mode, setMode] = useState('teach');
+  const [slide, setSlide] = useState(0);
   const [card, setCard] = useState(() => cards[0]);
-  const [feedback, setFeedback] = useState('Press an answer. Correct goes DING. Wrong goes BUZZ and tells you why.');
+  const [feedback, setFeedback] = useState('Teach first. Then practice. Correct dings, wrong buzzes and explains the map logic.');
+
+  function startPractice() {
+    setMode('practice');
+    setCard(pickAdaptiveCard(cards, stats, level));
+  }
 
   function nextCard(nextStats = stats) {
     setCard(pickAdaptiveCard(cards, nextStats, level));
@@ -52,7 +74,7 @@ export default function App() {
       setFeedback(card.wrongMessage + ' ' + card.explanation);
       playTone(180);
     }
-    setTimeout(() => nextCard(nextStats), 900);
+    setTimeout(() => nextCard(nextStats), 1200);
   }
 
   function playTone(freq) {
@@ -76,25 +98,26 @@ export default function App() {
     <header className="hero">
       <div>
         <p className="eyebrow">MAPTRAINERX // GBA PAPER WHITE</p>
-        <h1>Warehouse Memory Cartridge</h1>
-        <p>Learn the map by purpose: BI, BO, CS, CR, SR, Drop, Office, and Hydrogen. The app repeats what you miss until your brain stops wandering like a loose pallet.</p>
+        <h1>Warehouse Stack Logic</h1>
+        <p>Learn the map as a 3D warehouse: zone purpose, product family, 4-stack safety, customer access, and clear travel paths.</p>
       </div>
       <MiniMap />
     </header>
 
     <section className="hud">
-      <span>XP: {xp}</span><span>Rank: {getRank(xp)}</span><span>Right: {right}</span><span>Wrong: {missed}</span>
+      <span>Mode: {mode.toUpperCase()}</span><span>XP: {xp}</span><span>Rank: {getRank(xp)}</span><span>Right: {right}</span><span>Wrong: {missed}</span>
       <select value={level} onChange={(e) => setLevel(e.target.value)}>
-        <option value="all">All Levels</option><option value="2">Support Areas</option><option value="3">Bulk Zones</option><option value="4">Customer Zones</option><option value="5">Hard Mode</option>
+        <option value="all">All Practice</option><option value="2">Support Areas</option><option value="3">Bulk + 4 Stack</option><option value="4">Customer Flow</option><option value="5">Hard Decisions</option>
       </select>
+      <button onClick={() => setMode('teach')}>Teach</button><button onClick={startPractice}>Practice</button>
     </section>
 
-    <section className="panel quiz">
-      <div className="card-id">{card.id} • Level {card.level} • Target: {card.zone}</div>
+    {mode === 'teach' ? <Lesson slide={slide} setSlide={setSlide} startPractice={startPractice} /> : <section className="panel quiz">
+      <div className="card-id">{card.id} • {card.skill} • Level {card.level} • Target: {card.zone}</div>
       <h2>{card.prompt}</h2>
       <div className="choices">{card.choices.map((choice, index) => <button key={choice} onClick={() => answer(choice, index)}>{String.fromCharCode(65 + index)}) {choice}</button>)}</div>
       <div className="feedback">{feedback}</div>
-    </section>
+    </section>}
 
     <Guide />
   </main>;
