@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { generateCards, lessonSlides, zoneGuide } from './data/cardFactory.js';
+import { generateCards, lessonSlides, zoneGuide } from './data/validatedCardFactory.js';
 import { getRank, pickAdaptiveCard, updateStats } from './utils/adaptiveTrainer.js';
 
 function MiniMap() {
@@ -35,7 +35,7 @@ function Guide() {
   return <section className="panel guide">
     <h2>Zone + Stack Guide</h2>
     {Object.entries(zoneGuide).map(([key, item]) => <div className="guide-row" key={key}>
-      <strong>{key}</strong><span>{item.name}</span><em>{item.memory}<br />Stack: {item.stack}</em>
+      <strong>{key}</strong><span>{item.name}</span><em>{item.purpose}<br />Stack: {item.stack}</em>
     </div>)}
   </section>;
 }
@@ -48,7 +48,7 @@ export default function App() {
   const [mode, setMode] = useState('teach');
   const [slide, setSlide] = useState(0);
   const [card, setCard] = useState(() => cards[0]);
-  const [feedback, setFeedback] = useState('Teach first. Then practice. Correct dings, wrong buzzes and explains the map logic.');
+  const [feedback, setFeedback] = useState('Teach first. Then practice. Every card has one correct answer only.');
 
   function startPractice() {
     setMode('practice');
