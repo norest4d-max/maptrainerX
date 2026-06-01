@@ -49,18 +49,37 @@ export default function App() {
   const [slide, setSlide] = useState(0);
   const [card, setCard] = useState(() => cards[0]);
   const [feedback, setFeedback] = useState('Teach first. Then practice. Every card has one correct answer only.');
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [isAnswered, setIsAnswered] = useState(false);
 
   function startPractice() {
     setMode('practice');
+    setSelectedIndex(null);
+    setIsAnswered(false);
     setCard(pickAdaptiveCard(cards, stats, level));
   }
 
   function nextCard(nextStats = stats) {
+    setSelectedIndex(null);
+    setIsAnswered(false);
     setCard(pickAdaptiveCard(cards, nextStats, level));
   }
 
+  function getChoiceClass(index) {
+    if (!isAnswered) return '';
+    const gotItRight = selectedIndex === card.answerIndex;
+    if (gotItRight && index === card.answerIndex) return 'choice-correct';
+    if (!gotItRight && index === selectedIndex) return 'choice-wrong';
+    if (!gotItRight && index === card.answerIndex) return 'choice-correct';
+    return 'choice-muted';
+  }
+
   function answer(choice, index) {
+    if (isAnswered) return;
     const correct = index === card.answerIndex;
+    setSelectedIndex(index);
+    setIsAnswered(true);
+
     const nextStats = updateStats(stats, card.id, correct);
     setStats(nextStats);
     localStorage.setItem('maptrainer-stats', JSON.stringify(nextStats));
@@ -74,7 +93,7 @@ export default function App() {
       setFeedback(card.wrongMessage + ' ' + card.explanation);
       playTone(180);
     }
-    setTimeout(() => nextCard(nextStats), 1200);
+    setTimeout(() => nextCard(nextStats), correct ? 1100 : 2100);
   }
 
   function playTone(freq) {
@@ -115,7 +134,7 @@ export default function App() {
     {mode === 'teach' ? <Lesson slide={slide} setSlide={setSlide} startPractice={startPractice} /> : <section className="panel quiz">
       <div className="card-id">{card.id} • {card.skill} • Level {card.level} • Target: {card.zone}</div>
       <h2>{card.prompt}</h2>
-      <div className="choices">{card.choices.map((choice, index) => <button key={choice} onClick={() => answer(choice, index)}>{String.fromCharCode(65 + index)}) {choice}</button>)}</div>
+      <div className="choices">{card.choices.map((choice, index) => <button disabled={isAnswered} className={getChoiceClass(index)} key={`${card.id}-${choice}`} onClick={() => answer(choice, index)}>{String.fromCharCode(65 + index)}) {choice}</button>)}</div>
       <div className="feedback">{feedback}</div>
     </section>}
 
